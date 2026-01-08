@@ -18,9 +18,10 @@ const Icons = {
   Content: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>,
   Design: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.172-1.172a4 4 0 115.656 5.656l-1.172 1.172"/></svg>,
   Quick: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>,
-  Download: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>,
+  Download: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>,
   Image: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>,
-  Coffee: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+  Coffee: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>,
+  Eye: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
 };
 
 const App: React.FC = () => {
@@ -32,9 +33,32 @@ const App: React.FC = () => {
   const [activePanel, setActivePanel] = useState<ActivePanel>('quick');
   const [isCapturing, setIsCapturing] = useState(false);
   const [cvCounter, setCvCounter] = useState<number>(128450);
+  const [previewScale, setPreviewScale] = useState(1);
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
+  
   const previewRef = useRef<HTMLDivElement>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
 
   const t = translations[lang];
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (previewContainerRef.current) {
+        const containerWidth = previewContainerRef.current.offsetWidth;
+        // A4 width is 794px. We scale it down to fit container width with some padding.
+        const targetWidth = containerWidth - 32; 
+        const newScale = Math.min(1, targetWidth / 794);
+        setPreviewScale(newScale);
+      }
+    };
+
+    window.addEventListener('resize', updateScale);
+    updateScale();
+    // Re-run after a small delay to ensure DOM is ready
+    setTimeout(updateScale, 100);
+
+    return () => window.removeEventListener('resize', updateScale);
+  }, [showMobilePreview]); // Re-scale when switching to mobile preview mode
 
   useEffect(() => {
     const savedCounter = localStorage.getItem('sira_cv_counter');
@@ -123,61 +147,66 @@ const App: React.FC = () => {
   const handleSpecialtySelect = (specialtyData: CVData) => {
     setData(specialtyData);
     setActivePanel('design');
+    if (window.innerWidth < 1280) {
+       setShowMobilePreview(true);
+    }
   };
 
-  // SEO Keywords for the footer tags
   const seoKeywords = lang === 'ar' 
     ? ["سيرة ذاتية مهندس", "سيرة ذاتية طبيب", "CV محاسب", "سيفي مبرمج", "سيرة ذاتية طالب", "نموذج CV بالانجليزي", "سيرة ذاتية ATS", "صانع سيفي مجاني", "تحميل سيرة ذاتية PDF", "سيرة ذاتية 2025", "كتابة سيرة ذاتية احترافية", "نماذج وورد و PDF"]
     : ["Engineer Resume", "Doctor CV", "Accountant Resume", "Developer Portfolio", "Student CV", "English Resume Template", "ATS Compatible CV", "Free CV Maker", "Download PDF Resume", "2025 CV Trends", "Professional CV Writing", "Word and PDF Samples"];
 
   return (
-    <div className={`min-h-screen bg-[#f1f5f9] flex flex-col overflow-x-hidden ${lang === 'ar' ? 'font-cairo' : 'font-inter'}`}>
+    <div className={`min-h-screen bg-[#f8fafc] flex flex-col overflow-x-hidden ${lang === 'ar' ? 'font-cairo' : 'font-inter'}`}>
       
-      <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between z-[100] no-print shadow-sm" role="banner">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-black text-xl shadow-md" style={{ backgroundColor: themeColor }}>س</div>
+      {/* Top Header - Desktop Only mainly */}
+      <header className="fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 flex items-center justify-between z-[100] no-print shadow-sm" role="banner">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg" style={{ backgroundColor: themeColor }}>س</div>
           <div className="hidden sm:block">
-            <h1 className="text-sm font-black text-slate-900 tracking-tight">{t.title}</h1>
-            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t.subtitle}</p>
+            <h1 className="text-xs font-black text-slate-900 tracking-tight">{t.title}</h1>
+            <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">{t.subtitle}</p>
           </div>
         </div>
 
-        <nav className="flex items-center gap-4" aria-label="اللغات والتحميل">
-          <button onClick={toggleLanguage} className="text-[11px] font-black text-slate-500 hover:text-slate-900 px-3 py-2 transition-colors">
+        <nav className="flex items-center gap-2 md:gap-4" aria-label="Language and Actions">
+          <button onClick={toggleLanguage} className="text-[10px] font-black text-slate-500 hover:text-slate-900 px-2 py-1.5 transition-colors">
             {t.language}
           </button>
-          <div className="h-6 w-px bg-slate-200"></div>
+          <div className="hidden sm:block h-5 w-px bg-slate-200"></div>
           <div className="flex gap-2">
-            <button onClick={downloadImage} disabled={isCapturing} className={`px-5 py-2.5 rounded-xl text-[11px] font-black bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all flex items-center gap-2 ${isCapturing ? 'opacity-50 cursor-not-allowed' : ''}`}>
-              <Icons.Image /> <span className="hidden md:inline">{t.downloadImage}</span>
+            <button onClick={downloadImage} disabled={isCapturing} className="hidden md:flex px-4 py-2 rounded-lg text-[10px] font-black bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all items-center gap-2">
+              <Icons.Image /> <span>{t.downloadImage}</span>
             </button>
-            <button onClick={downloadPDF} disabled={isCapturing} className={`px-6 py-2.5 rounded-xl text-[11px] font-black text-white shadow-xl transition-all flex items-center gap-2 active:scale-95 ${isCapturing ? 'opacity-50 cursor-not-allowed' : ''}`} style={{ backgroundColor: themeColor }}>
-              {isCapturing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Icons.Download />}
-              <span>{isCapturing ? (lang === 'ar' ? 'جاري التحميل...' : 'Downloading...') : t.downloadPDF}</span>
+            <button onClick={downloadPDF} disabled={isCapturing} className={`px-4 md:px-6 py-2 rounded-lg text-[10px] font-black text-white shadow-lg transition-all flex items-center gap-2 active:scale-95 ${isCapturing ? 'opacity-50' : ''}`} style={{ backgroundColor: themeColor }}>
+              {isCapturing ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Icons.Download />}
+              <span>{isCapturing ? (lang === 'ar' ? 'تحميل...' : 'Saving...') : t.downloadPDF}</span>
             </button>
           </div>
         </nav>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-start pt-24 pb-20 px-4" role="main">
-        <div className="w-full max-w-[1700px] flex flex-col xl:flex-row items-start justify-center gap-4 xl:gap-6 transition-all">
-          <section className="flex-1 flex flex-col items-center gap-4 no-print" id="editor-section">
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col items-center justify-start pt-20 pb-28 md:pb-20 px-4" role="main">
+        <div className="w-full max-w-[1700px] flex flex-col xl:flex-row items-start justify-center gap-6">
+          
+          {/* Section 1: Form / Editor (Hidden on Mobile Preview Mode) */}
+          <section className={`flex-1 w-full flex flex-col items-center gap-4 no-print ${showMobilePreview ? 'hidden xl:flex' : 'flex'}`}>
             <div className="flex items-center gap-3 bg-white px-5 py-2 rounded-full border border-slate-200 shadow-sm self-center">
-              <div className="w-2 h-2 rounded-full bg-slate-900"></div>
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">{lang === 'ar' ? 'محرر البيانات الرسمي' : 'Official Data Editor'}</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-900"></div>
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">{lang === 'ar' ? 'محرر البيانات الذكي' : 'Smart Data Editor'}</span>
             </div>
-            <article className="w-full max-w-[794px] min-h-[1123px] bg-white rounded-sm shadow-[0_30px_70px_-15px_rgba(0,0,0,0.1)] border border-slate-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-left-8 duration-700">
-              <div className="p-0 bg-white border-b border-slate-100">
-                <nav className="bg-slate-50/80 rounded-b-[1.8rem] rounded-t-none p-2.5 flex items-center gap-2 border-b border-x border-slate-100 mx-5 mb-5">
-                  <button onClick={() => setActivePanel('quick')} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-[1.5rem] transition-all duration-300 ${activePanel === 'quick' ? 'bg-amber-500 text-white shadow-[0_8px_20px_-5px_rgba(245,158,11,0.4)]' : 'text-slate-400 hover:text-amber-600 hover:bg-white'}`}><Icons.Quick /><span className="text-[11px] font-black uppercase tracking-tight">{lang === 'ar' ? 'تعبئة' : 'Presets'}</span></button>
-                  <button onClick={() => setActivePanel('design')} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-[1.5rem] transition-all duration-300 ${activePanel === 'design' ? 'bg-indigo-600 text-white shadow-[0_8px_20px_-5px_rgba(79,70,229,0.4)]' : 'text-slate-400 hover:text-indigo-600 hover:bg-white'}`}><Icons.Design /><span className="text-[11px] font-black uppercase tracking-tight">{lang === 'ar' ? 'التصميم' : 'Style'}</span></button>
-                  <button onClick={() => setActivePanel('content')} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-[1.5rem] transition-all duration-300 ${activePanel === 'content' ? 'bg-blue-600 text-white shadow-[0_8px_20px_-5px_rgba(37,99,235,0.4)]' : 'text-slate-400 hover:text-blue-600 hover:bg-white'}`}><Icons.Content /><span className="text-[11px] font-black uppercase tracking-tight">{lang === 'ar' ? 'البيانات' : 'Details'}</span></button>
+            
+            <article className="w-full max-w-[850px] bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200 flex flex-col overflow-hidden min-h-[700px]">
+              <div className="p-0 bg-white">
+                <nav className="p-3 flex items-center gap-2 border-b border-slate-100 bg-slate-50/50">
+                  <button onClick={() => setActivePanel('quick')} className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl transition-all ${activePanel === 'quick' ? 'bg-amber-500 text-white shadow-lg shadow-amber-200' : 'text-slate-400 hover:bg-white'}`}><Icons.Quick /><span className="text-[10px] font-black uppercase">{lang === 'ar' ? 'تعبئة فورية' : 'Quick Fill'}</span></button>
+                  <button onClick={() => setActivePanel('design')} className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl transition-all ${activePanel === 'design' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:bg-white'}`}><Icons.Design /><span className="text-[10px] font-black uppercase">{lang === 'ar' ? 'التنسيق' : 'Design'}</span></button>
+                  <button onClick={() => setActivePanel('content')} className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl transition-all ${activePanel === 'content' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-400 hover:bg-white'}`}><Icons.Content /><span className="text-[10px] font-black uppercase">{lang === 'ar' ? 'المحتوى' : 'Content'}</span></button>
                 </nav>
               </div>
-              <div className="flex-1 overflow-y-auto p-12 no-scrollbar scroll-smooth">
-                <div className="mb-10 pb-6 border-b border-slate-50 flex items-center justify-between">
-                  <div><h2 className="text-2xl font-black text-slate-900 leading-none mb-3">{activePanel === 'quick' && (lang === 'ar' ? 'نماذج جاهزة' : 'Auto Presets')}{activePanel === 'design' && (lang === 'ar' ? 'تنسيق الهوية' : 'Identity Setup')}{activePanel === 'content' && (lang === 'ar' ? 'تحرير المحتوى' : 'Edit Content')}</h2><p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Professional Certification Standard</p></div>
-                </div>
+              
+              <div className="flex-1 overflow-y-auto p-6 md:p-10 no-scrollbar">
                 {activePanel === 'content' && <CVForm data={data} setData={setData} lang={lang} />}
                 {activePanel === 'design' && <div className="space-y-12 animate-in fade-in duration-500"><TemplateSelector current={template} onChange={setTemplate} lang={lang} /><ColorPicker color={themeColor} onChange={setThemeColor} lang={lang} /><FontSelector currentFont={fontFamily} onChange={setFontFamily} lang={lang} /></div>}
                 {activePanel === 'quick' && <SpecialtySelector lang={lang} onSelect={handleSpecialtySelect} themeColor={themeColor} />}
@@ -185,118 +214,115 @@ const App: React.FC = () => {
             </article>
           </section>
 
-          <section className="flex-1 flex flex-col items-center gap-4" id="preview-section">
+          {/* Section 2: Preview (Takes full width on Mobile Preview Mode) */}
+          <section ref={previewContainerRef} className={`flex-1 w-full flex flex-col items-center gap-4 ${!showMobilePreview ? 'hidden xl:flex' : 'flex'}`}>
              <div className="flex items-center gap-4 bg-white px-5 py-2 rounded-full border border-slate-200 shadow-sm self-center no-print">
-               <div className="relative"><div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div><div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping"></div></div>
-               <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">{lang === 'ar' ? 'معاينة المستند المباشرة' : 'Live Document Preview'}</span>
+               <div className="relative flex h-2.5 w-2.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span></div>
+               <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">{lang === 'ar' ? 'معاينة حية ومباشرة' : 'Live Preview'}</span>
              </div>
-             <div ref={previewRef} className="transition-all duration-700 ease-out shadow-[0_30px_80px_rgba(0,0,0,0.15)] border border-slate-200 rounded-sm overflow-hidden">
+             
+             {/* The Magic Scalable Container */}
+             <div 
+               ref={previewRef} 
+               className="transition-all duration-500 ease-out shadow-2xl rounded-sm overflow-hidden bg-slate-200/20"
+               style={{ 
+                 width: '794px', 
+                 height: '1123px',
+                 transform: `scale(${previewScale})`,
+                 transformOrigin: 'top center',
+                 marginBottom: `-${1123 * (1 - previewScale)}px` // Prevents empty space below scaled content
+               }}
+             >
                 <CVPreview data={data} lang={lang} template={template} themeColor={themeColor} fontFamily={fontFamily} />
              </div>
           </section>
         </div>
       </main>
 
-      {/* Popular Searches / SEO Tags Section */}
-      <section className="w-full max-w-7xl mx-auto px-10 mb-8 no-print" aria-label="SEO Tags">
-        <div className="flex flex-wrap items-center justify-center gap-3 pt-8 border-t border-slate-200/60">
-           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.popularSearches}</span>
+      {/* Mobile Floating Bottom Navigation - Premium Design */}
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-white/80 backdrop-blur-xl border border-slate-200 rounded-3xl h-18 px-3 flex items-center justify-around z-[110] xl:hidden shadow-[0_20px_40px_rgba(0,0,0,0.1)] no-print">
+          <button 
+            onClick={() => { setActivePanel('content'); setShowMobilePreview(false); }} 
+            className={`flex flex-col items-center justify-center gap-1 transition-all ${activePanel === 'content' && !showMobilePreview ? 'text-blue-600 scale-110' : 'text-slate-400'}`}
+          >
+            <Icons.Content />
+            <span className="text-[8px] font-black uppercase tracking-tighter">{lang === 'ar' ? 'البيانات' : 'Data'}</span>
+          </button>
+          <button 
+            onClick={() => { setActivePanel('design'); setShowMobilePreview(false); }} 
+            className={`flex flex-col items-center justify-center gap-1 transition-all ${activePanel === 'design' && !showMobilePreview ? 'text-indigo-600 scale-110' : 'text-slate-400'}`}
+          >
+            <Icons.Design />
+            <span className="text-[8px] font-black uppercase tracking-tighter">{lang === 'ar' ? 'التصميم' : 'Design'}</span>
+          </button>
+          
+          {/* Highlighted Download Button for Mobile */}
+          <div className="relative -top-3">
+             <button 
+              onClick={downloadPDF} 
+              disabled={isCapturing}
+              className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl text-white transition-all active:scale-90"
+              style={{ backgroundColor: themeColor }}
+             >
+               {isCapturing ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Icons.Download />}
+             </button>
+          </div>
+
+          <button 
+            onClick={() => { setActivePanel('quick'); setShowMobilePreview(false); }} 
+            className={`flex flex-col items-center justify-center gap-1 transition-all ${activePanel === 'quick' && !showMobilePreview ? 'text-amber-600 scale-110' : 'text-slate-400'}`}
+          >
+            <Icons.Quick />
+            <span className="text-[8px] font-black uppercase tracking-tighter">{lang === 'ar' ? 'تعبئة' : 'Presets'}</span>
+          </button>
+          
+          <button 
+            onClick={() => setShowMobilePreview(!showMobilePreview)} 
+            className={`flex flex-col items-center justify-center gap-1 transition-all ${showMobilePreview ? 'text-emerald-600 scale-110' : 'text-slate-400'}`}
+          >
+            <Icons.Eye />
+            <span className="text-[8px] font-black uppercase tracking-tighter">{lang === 'ar' ? 'المعاينة' : 'Preview'}</span>
+          </button>
+      </nav>
+
+      {/* SEO Section - Popular Searches */}
+      <section className="w-full max-w-7xl mx-auto px-6 mb-8 no-print" aria-label="SEO Tags">
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-8 border-t border-slate-200/60">
+           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">{t.popularSearches}</span>
            {seoKeywords.map((keyword, idx) => (
-             <span key={idx} className="text-[9px] font-bold text-slate-400 hover:text-slate-600 transition-colors cursor-default">
-               {keyword}{idx !== seoKeywords.length - 1 && " •"}
+             <span key={idx} className="text-[9px] font-bold text-slate-400 hover:text-slate-600 transition-colors">
+               {keyword}{idx !== seoKeywords.length - 1 && " • "}
              </span>
            ))}
         </div>
       </section>
 
-      {/* Buy Me A Coffee Section - Compact Version */}
-      <section className="w-full max-w-5xl mx-auto px-10 mb-8 no-print" aria-label="Support Us">
-        <div className="bg-white/60 backdrop-blur-sm border border-amber-100 rounded-full py-3 px-8 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm group hover:shadow-md transition-all">
+      {/* Support Section */}
+      <section className="w-full max-w-4xl mx-auto px-6 mb-12 no-print" aria-label="Support Us">
+        <div className="bg-amber-50/50 backdrop-blur-sm border border-amber-100 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
            <div className="flex items-center gap-4">
-              <div className="w-8 h-8 bg-amber-500 text-white rounded-lg flex items-center justify-center shadow-md">
-                <Icons.Coffee />
-              </div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                <h4 className="text-[12px] font-black text-slate-800">
-                  {lang === 'ar' ? 'ادعمنا لنبقى مجاناً' : 'Support us to stay free'}
-                </h4>
-                <p className="text-slate-400 text-[10px] font-bold">
-                  {lang === 'ar' ? 'مساهمتك تساعدنا على تغطية تكاليف التشغيل' : 'Your contribution helps us cover costs'}
-                </p>
+              <div className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center shadow-md"><Icons.Coffee /></div>
+              <div className="text-center md:text-right">
+                <h4 className="text-[12px] font-black text-slate-800">{lang === 'ar' ? 'هل أعجبتك الأداة؟' : 'Did you like the tool?'}</h4>
+                <p className="text-slate-400 text-[10px] font-bold">{lang === 'ar' ? 'ادعمنا لنستمر في تقديم الخدمات مجاناً للجميع.' : 'Support us to keep providing free services.'}</p>
               </div>
            </div>
-           
-           <a 
-            href="https://buymeacoffee.com/guidai" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="px-6 py-2 bg-[#FFDD00] hover:bg-[#ffea00] text-slate-900 rounded-full text-[10px] font-black shadow-sm transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
-           >
+           <a href="https://buymeacoffee.com/guidai" target="_blank" rel="noopener noreferrer" className="px-6 py-2.5 bg-[#FFDD00] text-slate-900 rounded-xl text-[10px] font-black shadow-sm flex items-center gap-2 transition-transform hover:scale-105">
              <img src="https://cdn.buymeacoffee.com/buttons/bmc-new-btn-logo.svg" alt="BMC logo" className="w-3" />
              <span>{lang === 'ar' ? 'اشترِ لي قهوة' : 'Buy me a coffee'}</span>
            </a>
         </div>
       </section>
 
-      {/* SEO-Rich Informative Section */}
-      <section className="w-full max-w-7xl mx-auto px-10 mb-20 no-print" aria-label="About Sira CV Builder">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 py-16 border-t border-slate-200">
-           <div className="space-y-4">
-              <h4 className="text-xl font-black text-slate-800">{lang === 'ar' ? 'دعم أنظمة الـ ATS' : 'ATS-Friendly Designs'}</h4>
-              <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                {lang === 'ar' 
-                  ? 'تم تصميم جميع قوالبنا لتكون صديقة لأنظمة تتبع المتقدمين (ATS)، مما يضمن قراءة بياناتك بشكل صحيح من قبل خوارزميات التوظيف في الشركات الكبرى.' 
-                  : 'Our templates are designed to be Applicant Tracking System (ATS) friendly, ensuring your data is parsed correctly by modern hiring algorithms.'}
-              </p>
-           </div>
-           <div className="space-y-4">
-              <h4 className="text-xl font-black text-slate-800">{lang === 'ar' ? 'سيرة ذاتية احترافية مجانية' : 'Professional Free CV'}</h4>
-              <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                {lang === 'ar' 
-                  ? 'نقدم لك تجربة إنشاء سيرة ذاتية (CV) مجانية تماماً وبجودة تضاهي المواقع العالمية، مع إمكانية التحميل بصيغة PDF جاهزة للطباعة الفورية.' 
-                  : 'We offer a completely free resume building experience with global standards, including high-quality PDF downloads ready for immediate printing.'}
-              </p>
-           </div>
-           <div className="space-y-4">
-              <h4 className="text-xl font-black text-slate-800">{lang === 'ar' ? 'قوالب سيرة ذاتية 2025' : '2025 Resume Templates'}</h4>
-              <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                {lang === 'ar' 
-                  ? 'اختر من بين أحدث صيحات تصميم السيرة الذاتية لعام 2025، ما بين التصاميم العصرية، التنفيذية، والإبداعية التي تناسب كافة التخصصات.' 
-                  : 'Choose from the latest 2025 resume design trends, ranging from modern, executive, to creative styles suitable for all career paths.'}
-              </p>
-           </div>
-        </div>
-      </section>
-
-      <section className="w-full max-w-7xl mx-auto px-10 mb-20 no-print" aria-label="Success Stats">
-         <div className="bg-white/80 backdrop-blur-xl border border-white rounded-[3rem] p-12 flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl shadow-slate-200/50">
-            <div className="flex-1 space-y-4 text-center md:text-start">
-               <div className="inline-flex items-center gap-3 bg-emerald-50 text-emerald-600 px-4 py-1.5 rounded-full">
-                  <span className="relative flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span>
-                  <span className="text-[10px] font-black uppercase tracking-widest">{t.liveNow}</span>
-               </div>
-               <h3 className="text-3xl font-black text-slate-900 leading-tight">{t.counterTitle}</h3>
-               <p className="text-slate-400 text-sm font-medium max-w-md">{lang === 'ar' ? 'انضم لآلاف المحترفين الذين حصلوا على وظائف أحلامهم باستخدام قوالبنا المعتمدة.' : 'Join thousands of professionals who secured their dream jobs using our certified templates.'}</p>
-            </div>
-            <div className="flex flex-col items-center md:items-end">
-               <div className="text-6xl md:text-8xl font-black text-slate-900 tracking-tighter tabular-nums drop-shadow-sm">{cvCounter.toLocaleString()}</div>
-               <div className="w-20 h-1.5 bg-slate-900 rounded-full mt-4" style={{ backgroundColor: themeColor }}></div>
-            </div>
-         </div>
-      </section>
-
-      <div className="fixed inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] z-[-1] opacity-40"></div>
-
-      <footer className="py-12 border-t border-slate-200 bg-white no-print mt-auto" role="contentinfo">
-        <div className="max-w-7xl mx-auto px-10 flex flex-col md:flex-row items-center justify-between gap-6">
+      <footer className="py-12 border-t border-slate-200 bg-white no-print mt-auto mb-20 md:mb-0" role="contentinfo">
+        <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-slate-900 text-white flex items-center justify-center font-black text-[10px]">س</div>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em]">Sira Digital Resume Engine v5.5 Gold</p>
+            <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black text-[10px]">س</div>
+            <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.4em]">Sira CV Designer Engine v6.0 Gold</p>
           </div>
-          <div className="text-[11px] font-black text-slate-500 flex items-center gap-4">
-            <span>{lang === 'ar' ? 'كافة الحقوق محفوظة 2025' : 'All Rights Reserved 2025'}</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
-            <a href="mailto:adelawad1@gmail.com" className="hover:text-blue-600 transition-colors">{lang === 'ar' ? 'تواصل معنا' : 'Contact Us'}</a>
+          <div className="text-[10px] font-black text-slate-500 flex flex-wrap justify-center gap-4">
+            <span>{lang === 'ar' ? 'جميع الحقوق محفوظة 2025' : 'All Rights Reserved 2025'}</span>
+            <a href="mailto:adelawad1@gmail.com" className="hover:text-blue-600 transition-colors uppercase tracking-widest">{lang === 'ar' ? 'تواصل معنا' : 'Contact'}</a>
           </div>
         </div>
       </footer>
